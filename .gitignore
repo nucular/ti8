@@ -30,3 +30,8 @@
 
 # Debug files
 *.dSYM/
+
+# bin/ and obj/
+bin/*
+obj/*
+!.gitkeep
