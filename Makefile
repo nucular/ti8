@@ -15,7 +15,7 @@ HEADERS := $(patsubst %,include$(/)%.h,$(ALL))
 OBJECTS := $(patsubst %,obj$(/)%.o,$(ALL))
 
 .PHONY: all
-all: ti8 any2ti
+all: ti8 tipack
 
 .PHONY: tipack
 tipack: tipack/tipack.c
