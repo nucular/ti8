@@ -31,7 +31,14 @@
 # Debug files
 *.dSYM/
 
-# bin/ and obj/
-bin/*
+# binaries
 obj/*
+*.v2z
+*.9xz
+
+# tipack
+tipack/*
+!tipack/Makefile
+!tipack/main.c
+
 !.gitkeep
