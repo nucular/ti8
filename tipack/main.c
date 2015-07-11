@@ -2,7 +2,10 @@
 #include <stdio.h>
 #include <errno.h>
 #include <string.h>
+#include <stdint.h>
 
+#define SWAP_UINT16(x) (((x) >> 8) | ((x) << 8))
+#define SWAP_UINT32(x) (((x) >> 24) | (((x) & 0x00FF0000) >> 8) | (((x) & 0x0000FF00) << 8) | ((x) << 24))
 
 static const char *usage =
   "usage: tipack IN [FOLDER\\]VARNAME TYPE OUT\n"
@@ -23,7 +26,7 @@ typedef struct DATA {
   size_t size;
 } DATA;
 
-const char *fpext(const char* filename)
+const char *fpext(const char *filename)
 {
   const char *dot = strchr(filename, '.');
   if (!dot || dot == filename) return "";
@@ -54,12 +57,20 @@ DATA tipack_v2(DATA indata, const char *folder, const char* varname, const char*
     84 + indata.size
   };
 
-  unsigned short int checksum = 0;
+  uint16_t checksum = 0;
   size_t i;
   for (i = 0; i < indata.size; i++)
   {
     checksum += indata.ptr[i];
   }
+
+#if BYTE_ORDER == LITTLE_ENDIAN
+  uint32_t bsize = SWAP_UINT32((unsigned int)indata.size);
+  uint16_t bchecksum = SWAP_UINT16(checksum);
+#else
+  uint32_t bsize = indata.size;
+  uint16_t bchecksum = checksum;
+#endif
   
   memcpy(outdata.ptr, "**TI92**", 8);
   memcpy(outdata.ptr + 8, "\x01\x00", 2);
@@ -69,10 +80,10 @@ DATA tipack_v2(DATA indata, const char *folder, const char* varname, const char*
   strcpy(outdata.ptr + 64, varname);
   memcpy(outdata.ptr + 72, "\xF8", 1);
   // memcpy(outdata.ptr + 73, (char[3]){0}, 3);
-  memcpy(outdata.ptr + 76, &indata.size, 4);
+  memcpy(outdata.ptr + 76, &bsize, 4);
   memcpy(outdata.ptr + 80, "\xA5\xA5", 2);
   memcpy(outdata.ptr + 82, indata.ptr, indata.size);
-  memcpy(outdata.ptr + 82 + indata.size, &checksum, 2);
+  memcpy(outdata.ptr + 82 + indata.size, &bchecksum, 2);
 
   return outdata;
 }
@@ -126,9 +137,9 @@ int main(int argc, char *argv[])
   fseek(in, 0, SEEK_END);
   size_t insize = ftell(in);
   fseek(in, 0, SEEK_SET);
-  if (insize >= 0xFFFFFFFF)
+  if (insize >= 0xFFDC)
   {
-    printf("Input file is too large: %iB of %iB", insize, 0xFFFFFFFF);
+    printf("Input file is too large: %iB of %iB", insize, 0xFFDC);
     fclose(in); fclose(out);
     return 1;
   }
