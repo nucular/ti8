@@ -87,18 +87,18 @@ DATA tipack_v2(DATA indata, const char *folder, const char* varname, const char*
   memcpy(footer.ptr + 5, "\xF8", 1);
 
   // Checksum is the lower 16 bits of the sum of all bytes in the variable
-  uint16_t checksum = (variable_size16 & 0xFF)
-    + ((variable_size16 >> 8) & 0xFF) + 0x100; // data size
-  size_t i;
+  unsigned int checksum = (variable_size16 & 0xFF) + ((variable_size16 >> 8) & 0xFF);
+  int i = 0;
   for (i = 0; i < indata.size; i++)
   {
-    checksum += indata.ptr[i];
+    checksum += *(uint8_t*)(indata.ptr + i);
   }
   for (i = 0; i < footer.size; i++)
   {
-    checksum += footer.ptr[i];
+    checksum += *(uint8_t*)(footer.ptr + i);
   }
-  printf("Checksum: 0x%04X\n", checksum);
+
+  printf("Checksum: 0x%03X\n", checksum);
 
   // Combine everything
   DATA outdata = (DATA){calloc(outdata_size, 1), outdata_size};
