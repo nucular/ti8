@@ -42,6 +42,11 @@ void _main(void)
       fatal("Could not open program: File name is invalid"); return; break;
   }
   file = malloc(sizeof(FILES));
+  if (!file)
+  {
+    fatal("Could not open program: Out of memory");
+    return;
+  }
   switch (FOpen(filename, file, FM_READ, "CHP8"))
   {
     case FS_ERROR:
