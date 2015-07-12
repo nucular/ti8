@@ -50,7 +50,8 @@ char *strndup(const char*s, size_t n)
 }
 
 
-DATA tipack_v2(DATA indata, const char *folder, const char* varname, const char* type)
+DATA tipack(DATA indata, const char *signature,
+  const char *folder, const char* varname, const char* type)
 {
   size_t indata_size = indata.size;
   size_t header_size = 88;
@@ -58,6 +59,10 @@ DATA tipack_v2(DATA indata, const char *folder, const char* varname, const char*
 
   size_t outdata_size = header_size + indata_size + footer_size + 2;
   size_t variable_size = indata_size + footer_size;
+
+  printf("Input size: %i (0x%X), Output size: %i (0x%X)\n",
+    indata_size, indata_size,
+    outdata_size, outdata_size);
 
   uint32_t outdata_size32 = (uint32_t)outdata_size;
   uint16_t variable_size16 = (uint16_t)variable_size;
@@ -68,7 +73,7 @@ DATA tipack_v2(DATA indata, const char *folder, const char* varname, const char*
 
   // File header
   DATA header = (DATA){calloc(header_size, 1), header_size};
-  memcpy(header.ptr, "**TI92P*", 8); // signature
+  memcpy(header.ptr, signature, 8); // signature
   memcpy(header.ptr + 8, "\x01\x00", 2); // further signature
   strcpy(header.ptr + 10, folder); // parent folder (zero-terminated)
   // comment (unused)
@@ -98,7 +103,7 @@ DATA tipack_v2(DATA indata, const char *folder, const char* varname, const char*
     checksum += *(uint8_t*)(footer.ptr + i);
   }
 
-  printf("Checksum: 0x%03X\n", checksum);
+  printf("Checksum: %i (0x%X)\n", checksum, checksum);
 
   // Combine everything
   DATA outdata = (DATA){calloc(outdata_size, 1), outdata_size};
@@ -141,7 +146,32 @@ int main(int argc, char *argv[])
     outpath = argv[4];
   }
 
-  printf("Path: %s\\%s\n", folder, varname);
+  printf("Variable path: %s\\%s\n", folder, varname);
+
+  // Try to deduce the calculator family from the output extension
+  const char *signature;
+  const char *outext = fpext(outpath);
+  char *calcname = strndup(outext, 2);
+  if (strcasecmp(calcname, "9x") == 0 || strcasecmp(calcname, "v2") == 0)
+  {
+    signature = "**TI92P*";
+  }
+  else if (strcasecmp(calcname, "92") == 0)
+  {
+    signature = "**TI92**";
+  }
+  else if (strcasecmp(calcname, "89") == 0)
+  {
+    signature = "**TI89**";
+  }
+  else
+  {
+    printf("Unrecognized calculator: %s", calcname);
+    free(calcname);
+    return 1;
+  }
+  printf("Calculator: %s, Signature: %s\n", calcname, signature);
+  free(calcname);
 
   // Open the files
   FILE *in = fopen(inpath, "rb");
@@ -176,25 +206,10 @@ int main(int argc, char *argv[])
   };
   fread(indata.ptr, 1, indata.size, in);
 
-  // Try to deduce the calculator family from the output extension
-  // and process the file
-  DATA outdata;
-  const char *outext = fpext(outpath);
-  char *calcname = strndup(outext, 2);
-  printf("Calculator: %s\n", calcname);
-  if (strcmp(calcname, "v2") == 0)
-  {
-    outdata = tipack_v2(indata, folder, varname, type);
-  }
-  else
-  {
-    printf("Unrecognized calculator: %s", calcname);
-    free(calcname); free(indata.ptr); fclose(in); fclose(out);
-    return 1;
-  }
-  free(calcname);
+  // Finally process it
+  DATA outdata = tipack(indata, signature, folder, varname, type);
 
-  // Write to output
+  // And write to output
   fwrite(outdata.ptr, 1, outdata.size, out);
 
   free(indata.ptr);
