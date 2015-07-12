@@ -52,38 +52,63 @@ char *strndup(const char*s, size_t n)
 
 DATA tipack_v2(DATA indata, const char *folder, const char* varname, const char* type)
 {
-  DATA outdata = (DATA){
-    calloc(84 + indata.size, 1),
-    84 + indata.size
-  };
+  size_t indata_size = indata.size;
+  size_t header_size = 88;
+  size_t footer_size = 6;
 
-  uint16_t checksum = 0;
+  size_t outdata_size = header_size + indata_size + footer_size + 2;
+  size_t variable_size = indata_size + footer_size;
+
+  uint32_t outdata_size32 = (uint32_t)outdata_size;
+  uint16_t variable_size16 = (uint16_t)variable_size;
+#if BYTE_ORDER == LITTLE_ENDIAN
+  //outdata_size32 = SWAP_UINT32(outdata_size32);
+  variable_size16 = SWAP_UINT16(variable_size16);
+#endif
+
+  // File header
+  DATA header = (DATA){calloc(header_size, 1), header_size};
+  memcpy(header.ptr, "**TI92P*", 8); // signature
+  memcpy(header.ptr + 8, "\x01\x00", 2); // further signature
+  strcpy(header.ptr + 10, folder); // parent folder (zero-terminated)
+  // comment (unused)
+  memcpy(header.ptr + 58, "\x01\x00\x52\x00\x00\x00", 6); // magic
+  strcpy(header.ptr + 64, varname); // variable name (zero-terminated)
+  memcpy(header.ptr + 72, "\x0C", 1); // type ID
+  memcpy(header.ptr + 73, "\x00\x03\x00", 3); // magic
+  memcpy(header.ptr + 76, &outdata_size32, 4); // file size (including header/footer)
+  memcpy(header.ptr + 80, "\xA5\x5A\x00\x00\x00\x00", 6); // magic
+  memcpy(header.ptr + 86, &variable_size16, 2); // data size
+
+  // File footer
+  DATA footer = (DATA){calloc(footer_size, 1), footer_size};
+  memcpy(footer.ptr, "\x00", 1);
+  strcpy(footer.ptr + 1, type);
+  memcpy(footer.ptr + 5, "\xF8", 1);
+
+  // Checksum is the lower 16 bits of the sum of all bytes in the variable
+  uint16_t checksum = (variable_size16 & 0xFF)
+    + ((variable_size16 >> 8) & 0xFF) + 0x100; // data size
   size_t i;
   for (i = 0; i < indata.size; i++)
   {
     checksum += indata.ptr[i];
   }
+  for (i = 0; i < footer.size; i++)
+  {
+    checksum += footer.ptr[i];
+  }
+  printf("Checksum: 0x%04X\n", checksum);
 
-#if BYTE_ORDER == LITTLE_ENDIAN
-  uint32_t bsize = SWAP_UINT32((unsigned int)indata.size);
-  uint16_t bchecksum = SWAP_UINT16(checksum);
-#else
-  uint32_t bsize = indata.size;
-  uint16_t bchecksum = checksum;
-#endif
-  
-  memcpy(outdata.ptr, "**TI92**", 8);
-  memcpy(outdata.ptr + 8, "\x01\x00", 2);
-  strcpy(outdata.ptr + 10, folder);
-  // memcpy(outdata.ptr + 18, (char[40]){0}, 40);
-  memcpy(outdata.ptr + 58, "\x01\x00\x52\x00\x00\x00", 6);
-  strcpy(outdata.ptr + 64, varname);
-  memcpy(outdata.ptr + 72, "\xF8", 1);
-  // memcpy(outdata.ptr + 73, (char[3]){0}, 3);
-  memcpy(outdata.ptr + 76, &bsize, 4);
-  memcpy(outdata.ptr + 80, "\xA5\xA5", 2);
-  memcpy(outdata.ptr + 82, indata.ptr, indata.size);
-  memcpy(outdata.ptr + 82 + indata.size, &bchecksum, 2);
+  // Combine everything
+  DATA outdata = (DATA){calloc(outdata_size, 1), outdata_size};
+  memcpy(outdata.ptr, header.ptr, header.size);
+  memcpy(outdata.ptr + header.size, indata.ptr, indata.size);
+  memcpy(outdata.ptr + header.size + indata.size, footer.ptr, footer.size);
+  memcpy(outdata.ptr + header.size + indata.size + footer.size, &checksum, 2);
+
+  free(header.ptr);
+  free(footer.ptr);
 
   return outdata;
 }
@@ -116,16 +141,16 @@ int main(int argc, char *argv[])
     outpath = argv[4];
   }
 
-  printf("%s\\%s", folder, varname);
+  printf("Path: %s\\%s\n", folder, varname);
 
   // Open the files
-  FILE *in = fopen(inpath, "r");
+  FILE *in = fopen(inpath, "rb");
   if (!in)
   {
     printf("Could not open input file: %s\n", strerror(errno));
     return errno;
   }
-  FILE *out = fopen(outpath, "w");
+  FILE *out = fopen(outpath, "wb");
   if (!out)
   {
     printf("Could not open output file: %s\n", strerror(errno));
@@ -136,7 +161,7 @@ int main(int argc, char *argv[])
   // Get and check the file size
   fseek(in, 0, SEEK_END);
   size_t insize = ftell(in);
-  fseek(in, 0, SEEK_SET);
+  rewind(in);
   if (insize >= 0xFFDC)
   {
     printf("Input file is too large: %iB of %iB", insize, 0xFFDC);
@@ -156,6 +181,7 @@ int main(int argc, char *argv[])
   DATA outdata;
   const char *outext = fpext(outpath);
   char *calcname = strndup(outext, 2);
+  printf("Calculator: %s\n", calcname);
   if (strcmp(calcname, "v2") == 0)
   {
     outdata = tipack_v2(indata, folder, varname, type);
