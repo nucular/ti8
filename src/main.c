@@ -1,9 +1,12 @@
 #include "conf.h"
 #include "main.h"
 
-#include <tigcclib.h>
+#include <stdlib.h>
 #include <args.h>
+#include <dialogs.h>
 #include <estack.h>
+#include <files.h>
+#include "strerror.h"
 
 #include "cpu.h"
 #include "input.h"
@@ -17,50 +20,31 @@ void _main(void)
   const char *filename;
   FILES *file;
   unsigned short filesize;
+  enum FileStatusEnum status;
 
   // Get the file name from the argument list
   InitArgPtr(argptr);
   if (ArgCount() != 1)
   {
-    fatal("Invalid number of arguments");
+    fatal("Invalid arguments", "Expected one argument of type string");
     return;
   }
   if (GetArgType(argptr) != STR_TAG) {
-    fatal("Invalid argument type: Expected string");
+    fatal("Invalid arguments", "Expected one argument of type string");
     return;
   }
   filename = GetStrnArg(argptr);
 
   // Try to open the file (thank god we only have to do this once)
-  switch (FAccess(filename, FM_READ, "CHP8"))
-  {
-    case FS_ERROR:
-      fatal("Could not open program: File is locked or not CHP8"); return; break;
-    case FS_NOT_FOUND:
-      fatal("Could not open program: File not found"); return; break;
-    case FS_BAD_NAME:
-      fatal("Could not open program: File name is invalid"); return; break;
-  }
+  status = FAccess(filename, FM_READ, "CH8");
+  if (status != FS_OK) fatal("Could not access program", strerror_fs(status));
   file = malloc(sizeof(FILES));
-  if (!file)
+  if (!file) fatal("Could not open program", "Out of memory");
+  status = FOpen(filename, file, FM_READ, "CH8");
+  if (status != FS_OK)
   {
-    fatal("Could not open program: Out of memory");
-    return;
-  }
-  switch (FOpen(filename, file, FM_READ, "CHP8"))
-  {
-    case FS_ERROR:
-      free(file);
-      fatal("Could not open program: File locked or not CHP8");
-      return; break;
-    case FS_BAD_NAME:
-      free(file);
-      fatal("Could not open program: File name is invalid");
-      return; break;
-    case FS_MEMORY:
-      free(file);
-      fatal("Could not open program: Out of memory");
-      return; break;
+    free(file);
+    fatal("Could not open program", strerror_fs(status));
   }
 
   // Get and check the file size
@@ -68,7 +52,7 @@ void _main(void)
   if (filesize >= EMU_MEMSIZE)
   {
     FClose(file); free(file);
-    fatal("Program is invalid: Too large");
+    fatal("Program is invalid", "Too large for CHIP-8");
     return;
   }
 
@@ -76,15 +60,21 @@ void _main(void)
   main_init();
 
   // Read the file into memory
-  if (FRead(emu_memory + EMU_PROGSTART, filesize, file) == FS_EOF)
+  status = FRead(emu_memory + EMU_PROGSTART, filesize, file);
+  if (status != FS_OK)
   {
     FClose(file); free(file);
-    fatal("Program is invalid: Unexpected EOF (this really shouldn't happen!)");
+    fatal("Program is invalid", strerror_fs(status));
     return;
   }
 
+  // We're done here
   FClose(file);
   free(file);
+
+  // Main loop goes here
+
+  main_exit();
 }
 
 void main_init()
@@ -99,9 +89,9 @@ void main_exit()
   screen_exit();
 }
 
-void fatal(const char *msg)
+void fatal(const char* title, const char *msg)
 {
   main_exit();
-  DlgMessage("FATAL ERROR", msg, BT_OK, BT_NONE);
+  DlgMessage(title, msg, BT_OK, BT_NONE);
   exit(1);
 }

@@ -9,7 +9,7 @@ else
 	/ := /
 endif
 
-ALL := cpu input screen emu main
+ALL := input screen cpu main strerror
 SOURCES := $(patsubst %,src$(/)%.c,$(ALL))
 HEADERS := $(patsubst %,include$(/)%.h,$(ALL))
 OBJECTS := $(patsubst %,obj$(/)%.o,$(ALL))

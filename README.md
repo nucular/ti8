@@ -8,7 +8,7 @@ Usage
 
 1. Put it on your calculator through TI Graph-Link.
 2. Run your CHIP-8 programs through tipack
-   (`tipack myprog.ch8 folder\myprog CHP8 myprog.v2y`).
+   (`tipack myprog.ch8 folder\myprog CH8 myprog.v2y`).
 3. Put them on your calculator too.
 4. Run `ti8("folder\myprog")` to launch the program.
 

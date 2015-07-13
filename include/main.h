@@ -4,6 +4,6 @@
 void main_init();
 void main_exit();
 
-void fatal(const char *msg);
+void fatal(const char *title, const char *msg);
 
 #endif

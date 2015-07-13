@@ -79,7 +79,7 @@ DATA tipack(DATA indata, const char *signature,
   // comment (unused)
   memcpy(header.ptr + 58, "\x01\x00\x52\x00\x00\x00", 6); // magic
   strcpy(header.ptr + 64, varname); // variable name (zero-terminated)
-  memcpy(header.ptr + 72, "\x0C", 1); // type ID
+  memcpy(header.ptr + 72, "\x1C", 1); // type ID
   memcpy(header.ptr + 73, "\x00\x03\x00", 3); // magic
   memcpy(header.ptr + 76, &outdata_size32, 4); // file size (including header/footer)
   memcpy(header.ptr + 80, "\xA5\x5A\x00\x00\x00\x00", 6); // magic
