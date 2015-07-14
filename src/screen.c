@@ -1,6 +1,7 @@
 #include "screen.h"
 
 #include <stdlib.h>
+#include <asmtypes.h>
 #include <graph.h>
 #include <mem.h>
 
@@ -21,6 +22,7 @@ void screen_init()
 void screen_clear()
 {
   memset(screen_mem, 0, SCREEN_MEMSIZE);
+  screen_dirty = TRUE;
 }
 
 void screen_update()

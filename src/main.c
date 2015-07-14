@@ -63,7 +63,7 @@ void _main(void)
   main_init();
 
   // Read the file into memory
-  status = FRead((unsigned short *)(emu_memory + EMU_PROGSTART), filesize, file);
+  status = FRead((unsigned char *)(emu_memory + EMU_PROGSTART), filesize, file);
   if (status != FS_OK)
   {
     FClose(file); free(file);
@@ -77,14 +77,11 @@ void _main(void)
   // Main loop
   void *keyqueue = kbd_queue();
   unsigned short key;
-  SCREEN_SET64(screen_mem,10,10);
-  SCREEN_SET64(screen_mem,20,10);
-  SCREEN_SET64(screen_mem,10,20);
-  SCREEN_SET64(screen_mem,20,20);
   while (emu_running)
   {
     emu_cycle();
-    screen_update();
+    if (screen_dirty)
+      screen_update();
     if (!OSdequeue(&key, keyqueue))
     {
       if (key == KEY_QUIT || key == KEY_ESC)

@@ -8,6 +8,7 @@
 #define EMU_PROGSTART 0x200
 #define EMU_PROGSIZE (EMU_MEMSIZE - EMU_PROGSTART)
 #define EMU_STACKSIZE 16
+#define EMU_REGCOUNT 16
 
 void emu_init();
 void emu_exit();
@@ -34,9 +35,11 @@ const char emu_font[80] = {
 };
 
 BOOL emu_running;
-unsigned short *emu_memory;
-unsigned short *emu_pc;
-unsigned short emu_stack[EMU_STACKSIZE];
+unsigned char *emu_memory;
+unsigned char emu_reg[EMU_REGCOUNT];
+unsigned char *emu_pc;
+unsigned short emu_i;
+unsigned char *emu_stack[EMU_STACKSIZE];
 unsigned char emu_stack_top;
 volatile unsigned char emu_delaytimer;
 volatile unsigned char emu_soundtimer;

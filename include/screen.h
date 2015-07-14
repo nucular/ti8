@@ -1,6 +1,8 @@
 #ifndef SCREEN_H
 #define SCREEN_H
 
+#include <asmtypes.h>
+
 #define SCREEN_WIDTH 64
 #define SCREEN_HEIGHT 32
 #define SCREEN_MEMSIZE ((SCREEN_WIDTH * SCREEN_HEIGHT) / 8)
@@ -26,6 +28,7 @@ void screen_exit();
 void screen_clear();
 void screen_update();
 
+BOOL screen_dirty;
 unsigned char *screen_mem;
 
 #endif
