@@ -1,11 +1,18 @@
 #ifndef EMU_H
 #define EMU_H
 
+#include <asmtypes.h>
+#include <intr.h>
+
 #define EMU_MEMSIZE 0xFFF
 #define EMU_PROGSTART 0x200
+#define EMU_PROGSIZE (EMU_MEMSIZE - EMU_PROGSTART)
+#define EMU_STACKSIZE 16
 
 void emu_init();
 void emu_exit();
+void emu_cycle();
+DEFINE_INT_HANDLER(emu_int5);
 
 const char emu_font[80] = {
   0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
@@ -25,6 +32,14 @@ const char emu_font[80] = {
   0xF0, 0x80, 0xF0, 0x80, 0xF0, // E
   0xF0, 0x80, 0xF0, 0x80, 0x80  // F
 };
-char *emu_memory;
+
+BOOL emu_running;
+unsigned short *emu_memory;
+unsigned short *emu_pc;
+unsigned short emu_stack[EMU_STACKSIZE];
+unsigned char emu_stack_top;
+volatile unsigned char emu_delaytimer;
+volatile unsigned char emu_soundtimer;
+INT_HANDLER emu_old_int5;
 
 #endif

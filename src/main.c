@@ -3,12 +3,15 @@
 
 #include <stdlib.h>
 #include <args.h>
+#include <asmtypes.h>
 #include <dialogs.h>
 #include <estack.h>
 #include <files.h>
+#include <kbd.h>
+#include <stdio.h>
+#include <system.h>
 #include "strerror.h"
 
-#include "cpu.h"
 #include "input.h"
 #include "screen.h"
 #include "emu.h"
@@ -49,7 +52,7 @@ void _main(void)
 
   // Get and check the file size
   filesize = FGetSize(file);
-  if (filesize >= EMU_MEMSIZE)
+  if (filesize >= EMU_PROGSIZE)
   {
     FClose(file); free(file);
     fatal("Program is invalid", "Too large for CHIP-8");
@@ -60,7 +63,7 @@ void _main(void)
   main_init();
 
   // Read the file into memory
-  status = FRead(emu_memory + EMU_PROGSTART, filesize, file);
+  status = FRead((unsigned short *)(emu_memory + EMU_PROGSTART), filesize, file);
   if (status != FS_OK)
   {
     FClose(file); free(file);
@@ -68,11 +71,26 @@ void _main(void)
     return;
   }
 
-  // We're done here
   FClose(file);
   free(file);
 
-  // Main loop goes here
+  // Main loop
+  void *keyqueue = kbd_queue();
+  unsigned short key;
+  SCREEN_SET64(screen_mem,10,10);
+  SCREEN_SET64(screen_mem,20,10);
+  SCREEN_SET64(screen_mem,10,20);
+  SCREEN_SET64(screen_mem,20,20);
+  while (emu_running)
+  {
+    emu_cycle();
+    screen_update();
+    if (!OSdequeue(&key, keyqueue))
+    {
+      if (key == KEY_QUIT || key == KEY_ESC)
+        emu_running = FALSE;
+    }
+  }
 
   main_exit();
 }
