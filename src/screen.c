@@ -11,6 +11,7 @@
 void screen_init()
 {
   ClrScr();
+  MoveTo(0, 0); // for printf
   screen_mem = malloc(SCREEN_MEMSIZE);
   if (!screen_mem)
   {

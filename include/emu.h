@@ -13,6 +13,7 @@
 void emu_init();
 void emu_exit();
 void emu_cycle();
+void emu_setpaused(BOOL paused);
 DEFINE_INT_HANDLER(emu_int5);
 
 const char emu_font[80] = {
@@ -35,7 +36,9 @@ const char emu_font[80] = {
 };
 
 BOOL emu_running;
-unsigned char *emu_memory;
+BOOL emu_paused;
+BOOL emu_stepthrough;
+unsigned char *emu_mem;
 unsigned char emu_reg[EMU_REGCOUNT];
 unsigned char *emu_pc;
 unsigned short emu_i;

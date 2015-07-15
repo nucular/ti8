@@ -3,8 +3,10 @@
 #include <stdlib.h>
 #include <alloc.h>
 #include <asmtypes.h>
+#include <graph.h>
 #include <intr.h>
 #include <mem.h>
+#include <stdio.h>
 
 #include "main.h"
 #include "screen.h"
@@ -12,14 +14,14 @@
 
 void emu_init()
 {
-  emu_memory = malloc(EMU_MEMSIZE);
-  if (!emu_memory) fatal("Could not initialize emulator", "Out of memory");
+  emu_mem = malloc(EMU_MEMSIZE);
+  if (!emu_mem) fatal("Could not initialize emulator", "Out of memory");
 
-  emu_pc = emu_memory + EMU_PROGSTART;
+  emu_pc = emu_mem + EMU_PROGSTART;
   emu_i = 0;
 
   // Load the font set
-  memcpy(emu_memory, emu_font, 80);
+  memcpy(emu_mem, emu_font, 80);
 
   // Set up the timers
   emu_old_int5 = GetIntVec(AUTO_INT_5);
@@ -35,19 +37,26 @@ void emu_init()
   emu_stack_top = 0;
 
   randomize();
+  emu_paused = FALSE;
+  emu_stepthrough = FALSE;
   emu_running = TRUE;
 }
 
 void emu_exit()
 {
-  if (emu_memory) free(emu_memory);
+  if (emu_mem) free(emu_mem);
   if (emu_old_int5) SetIntVec(AUTO_INT_5, emu_old_int5);
   PRG_setRate(1);
 }
 
 void emu_illegal()
 {
-  //
+  printf_xy(0, 127 - 8,
+    "!!! [%03X]: 0x%04X",
+    (unsigned int)(emu_pc - emu_mem),
+    (unsigned short)(*emu_pc)
+  );
+  emu_paused = TRUE;
 }
 
 void emu_cycle()
@@ -63,6 +72,16 @@ void emu_cycle()
 
   unsigned short i;
   unsigned char x, y, xl, yl, line; // 0xDXYN
+
+  if (emu_stepthrough)
+  {
+    printf_xy(0, 127 - 8,
+      "[%03X]: %04X",
+      (unsigned int)(emu_pc - emu_mem),
+      (b1 << 8) | b2
+    );
+    emu_setpaused(TRUE);
+  }
 
   switch (n1)
   {
@@ -92,13 +111,15 @@ void emu_cycle()
       break;
 
     case 0x1: // 0x1NNN: Jump to %NNN
-      emu_pc = emu_memory + ((n2 << 8) | b2);
+      emu_pc = emu_mem + ((n2 << 8) | b2);
+      emu_paused = TRUE;
       advance = FALSE; break;
 
     case 0x2: // 0x2NNN: Call %NNN
       emu_stack[emu_stack_top] = emu_pc;
       emu_stack_top++;
-      emu_pc = emu_memory + ((n2 << 8) | b2);
+      emu_pc = emu_mem + ((n2 << 8) | b2);
+      emu_paused = TRUE;
       advance = FALSE; break;
 
     case 0x3: // 0x3XNN: Skip if %X == $NN
@@ -214,7 +235,7 @@ void emu_cycle()
       break;
 
     case 0xB: // 0xBNNN: Jump to $NNN + %0
-      emu_pc = emu_memory + ((n2 << 8) | b2) + emu_reg[0];
+      emu_pc = emu_mem + ((n2 << 8) | b2) + emu_reg[0];
       break;
 
     case 0xC: // 0xCXNN: %X = rand() & $NN
@@ -224,7 +245,7 @@ void emu_cycle()
     case 0xD: // 0xDXYN: Draw sprite from %I at $X,$Y with a height of $N
       for (yl = 0; yl < 8; yl++)
       {
-        line = emu_memory[emu_i + yl];
+        line = emu_mem[emu_i + yl];
         for (xl = 0; xl < n4; xl++)
         {
           x = (n2 + xl) % SCREEN_WIDTH;
@@ -278,20 +299,20 @@ void emu_cycle()
           break;
 
         case 0x33: // 0xFX33: Store binary of %X in %I to %I+2
-          emu_memory[emu_i] = emu_reg[n2] / 100;
-          emu_memory[emu_i + 1] = (emu_reg[n2] / 10) % 10;
-          emu_memory[emu_i + 2] = (emu_reg[n2] % 100) % 10;
+          emu_mem[emu_i] = emu_reg[n2] / 100;
+          emu_mem[emu_i + 1] = (emu_reg[n2] / 10) % 10;
+          emu_mem[emu_i + 2] = (emu_reg[n2] % 100) % 10;
           break;
 
         case 0x55: // 0xFX55: Store %0 to %X in memory starting at %I
           for (i = 0; i <= n2; i++)
-            emu_memory[emu_i + i] = emu_reg[i];
+            emu_mem[emu_i + i] = emu_reg[i];
           emu_i += n2 + 1;
           break;
 
         case 0x65: // 0xFX65: Fill %0 to %X with the memory starting at %I
           for (i = 0; i <= n2; i++)
-            emu_reg[i] = emu_memory[emu_i + i];
+            emu_reg[i] = emu_mem[emu_i + i];
           emu_i += n2 + 1;
           break;
 
@@ -304,14 +325,29 @@ void emu_cycle()
 
   if (advance)
     emu_pc += 2;
-  if (emu_pc >= (emu_memory + EMU_MEMSIZE))
+  if (emu_pc >= (emu_mem + EMU_MEMSIZE))
     emu_running = FALSE;
+}
+
+void emu_setpaused(BOOL paused)
+{
+  if (paused)
+  {
+    printf_xy(240 - 16, 127 - 8, "||");
+    emu_paused = TRUE;
+  }
+  else
+  {
+    clrscr();
+    screen_update();
+    emu_paused = FALSE;
+  }
 }
 
 DEFINE_INT_HANDLER(emu_int5)
 {
-  if (emu_delaytimer >= 2)
-    emu_delaytimer -= 2;
-  if (emu_soundtimer >= 2)
-    emu_soundtimer -= 2;
+  if (emu_delaytimer >= 1)
+    emu_delaytimer -= 1;
+  if (emu_soundtimer >= 1)
+    emu_soundtimer -= 1;
 }

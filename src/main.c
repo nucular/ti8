@@ -8,6 +8,7 @@
 #include <estack.h>
 #include <files.h>
 #include <kbd.h>
+#include <statline.h>
 #include <stdio.h>
 #include <system.h>
 #include "strerror.h"
@@ -63,7 +64,7 @@ void _main(void)
   main_init();
 
   // Read the file into memory
-  status = FRead((unsigned char *)(emu_memory + EMU_PROGSTART), filesize, file);
+  status = FRead((unsigned char *)(emu_mem + EMU_PROGSTART), filesize, file);
   if (status != FS_OK)
   {
     FClose(file); free(file);
@@ -79,14 +80,44 @@ void _main(void)
   unsigned short key;
   while (emu_running)
   {
-    emu_cycle();
-    if (screen_dirty)
-      screen_update();
     if (!OSdequeue(&key, keyqueue))
     {
-      if (key == KEY_QUIT || key == KEY_ESC)
-        emu_running = FALSE;
+      switch (key)
+      {
+        case KEY_QUIT:
+        case KEY_ESC:
+          emu_running = FALSE;
+          break;
+
+        case KEY_ENTER:
+          emu_setpaused(!emu_paused);
+          break;
+
+        case KEY_MODE:
+          if (emu_stepthrough)
+          {
+            emu_stepthrough = FALSE;
+            emu_setpaused(FALSE);
+          }
+          else
+          {
+            emu_stepthrough = TRUE;
+            emu_setpaused(TRUE);
+          }
+          break;
+      }
     }
+
+    if (!emu_paused)
+    {
+      emu_cycle();
+      if (screen_dirty)
+      {
+        screen_update();
+        screen_dirty = FALSE;
+      }
+    }
+    else idle();
   }
 
   main_exit();
