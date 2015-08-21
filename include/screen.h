@@ -5,7 +5,8 @@
 
 #define SCREEN_WIDTH 64
 #define SCREEN_HEIGHT 32
-#define SCREEN_MEMSIZE ((SCREEN_WIDTH * SCREEN_HEIGHT) / 8)
+#define SCREEN_PITCH 8
+#define SCREEN_MEMSIZE (SCREEN_PITCH * SCREEN_HEIGHT)
 
 #define SCREEN_OFFSET64(x,y) ((y<<2)+(y<<2)+(x>>3))
 #define SCREEN_ADDR64(p,x,y) ((unsigned char*)(p)+SCREEN_OFFSET64(x,y))

@@ -31,9 +31,9 @@ void screen_update()
   unsigned short x, y;
   for (y = 0; y < SCREEN_HEIGHT; y++)
   {
-    for (x = 0; x < SCREEN_WIDTH; x++)
+    for (x = 0; x < SCREEN_PITCH; x++)
     {
-      *SCREEN_ADDR240(LCD_MEM, x, y) = *SCREEN_ADDR64(screen_mem, x, y);
+      *SCREEN_ADDR240(LCD_MEM, x<<3, y) = *SCREEN_ADDR64(screen_mem, x<<3, y);
     }
   }
 }

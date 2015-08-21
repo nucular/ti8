@@ -56,7 +56,7 @@ void emu_illegal()
     (unsigned int)(emu_pc - emu_mem),
     (unsigned short)(*emu_pc)
   );
-  emu_paused = TRUE;
+  emu_setpaused(TRUE);
 }
 
 void emu_cycle()
@@ -97,8 +97,7 @@ void emu_cycle()
         case 0xEE:
           if (n2 == 0) // 0x00EE: Return
           {
-            emu_pc = emu_stack[emu_stack_top];
-            emu_stack_top--;
+            emu_pc = emu_stack[--emu_stack_top];
             advance = FALSE;
           }
           else emu_illegal();
@@ -112,14 +111,12 @@ void emu_cycle()
 
     case 0x1: // 0x1NNN: Jump to %NNN
       emu_pc = emu_mem + ((n2 << 8) | b2);
-      emu_paused = TRUE;
       advance = FALSE; break;
 
     case 0x2: // 0x2NNN: Call %NNN
       emu_stack[emu_stack_top] = emu_pc;
       emu_stack_top++;
       emu_pc = emu_mem + ((n2 << 8) | b2);
-      emu_paused = TRUE;
       advance = FALSE; break;
 
     case 0x3: // 0x3XNN: Skip if %X == $NN

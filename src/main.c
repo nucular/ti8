@@ -109,15 +109,12 @@ void _main(void)
     }
 
     if (!emu_paused)
-    {
       emu_cycle();
-      if (screen_dirty)
-      {
-        screen_update();
-        screen_dirty = FALSE;
-      }
+    if (screen_dirty)
+    {
+      screen_update();
+      screen_dirty = FALSE;
     }
-    else idle();
   }
 
   main_exit();
