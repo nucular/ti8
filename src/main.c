@@ -109,7 +109,10 @@ void _main(void)
     }
 
     if (!emu_paused)
+    {
+      input_update();
       emu_cycle();
+    }
     if (screen_dirty)
     {
       screen_update();

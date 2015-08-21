@@ -9,6 +9,7 @@
 #include <stdio.h>
 
 #include "main.h"
+#include "input.h"
 #include "screen.h"
 
 
@@ -240,10 +241,10 @@ void emu_cycle()
       break;
 
     case 0xD: // 0xDXYN: Draw sprite from %I at $X,$Y with a height of $N
-      for (yl = 0; yl < 8; yl++)
+      for (yl = 0; yl < n4; yl++)
       {
         line = emu_mem[emu_i + yl];
-        for (xl = 0; xl < n4; xl++)
+        for (xl = 0; xl < 8; xl++)
         {
           x = (n2 + xl) % SCREEN_WIDTH;
           y = (n3 + yl) % SCREEN_HEIGHT;
@@ -252,8 +253,6 @@ void emu_cycle()
           {
             if (SCREEN_GET64(screen_mem, x, y))
               emu_reg[0xF] = 1;
-            else
-              emu_reg[0xF] = 0;
             SCREEN_XOR64(screen_mem, x, y);
           }
         }
@@ -262,7 +261,25 @@ void emu_cycle()
       break;
 
     case 0xE:
-      break; // unimplemented
+      switch (b2)
+      {
+        case 0x9E: // 0xEX9E: Skip if key in %VX is pressed
+          if (input_keys[emu_reg[b2]])
+            emu_pc += 4;
+          else
+            emu_pc += 2;
+          advance = FALSE; break;
+
+        case 0xA1: // 0xEXA1: Skip if key in %VX is not pressed
+          if (input_keys[emu_reg[b2]])
+            emu_pc += 2;
+          else
+            emu_pc += 4;
+          advance = FALSE; break;
+
+        default:
+          emu_illegal(); break;
+      }
 
     case 0xF:
       switch (b2)
@@ -272,8 +289,13 @@ void emu_cycle()
           break;
 
         case 0x0A: // 0xFX0A: Wait for key, set %VX to it
-          // unimplemented
-          break;
+          for (i = 0; i < 0xF; i++) {
+            if (input_keys[i]) {
+              emu_reg[n2] = i;
+              break;
+            }
+          }
+          advance = FALSE; break;
 
         case 0x15: // 0xFX15: %delay = %VX
           emu_delaytimer = emu_reg[n2];
