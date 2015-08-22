@@ -99,8 +99,7 @@ void emu_cycle()
         case 0xEE:
           if (n2 == 0) // 0x00EE: Return
           {
-            emu_stack_top--;
-            emu_pc = emu_stack[emu_stack_top];
+            emu_pc = emu_stack[--emu_stack_top];
             advance = FALSE;
           }
           else emu_illegal();
@@ -117,8 +116,7 @@ void emu_cycle()
       advance = FALSE; break;
 
     case 0x2: // 0x2NNN: Call %NNN
-      emu_stack[emu_stack_top] = emu_pc;
-      emu_stack_top++;
+      emu_stack[emu_stack_top++] = emu_pc;
       emu_pc = emu_mem + ((n2 << 8) | b2);
       advance = FALSE; break;
 
@@ -292,13 +290,14 @@ void emu_cycle()
           break;
 
         case 0x0A: // 0xFX0A: Wait for key, set %VX to it
+          advance = FALSE;
           for (i = 0; i < 0xF; i++) {
             if (input_keys[i]) {
               emu_reg[n2] = i;
-              break;
+              advance = TRUE;
             }
           }
-          advance = FALSE; break;
+          break;
 
         case 0x15: // 0xFX15: %delay = %VX
           emu_delaytimer = emu_reg[n2];
