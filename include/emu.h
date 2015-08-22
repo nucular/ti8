@@ -9,6 +9,7 @@
 #define EMU_PROGSIZE (EMU_MEMSIZE - EMU_PROGSTART)
 #define EMU_STACKSIZE 16
 #define EMU_REGCOUNT 16
+#define EMU_REALISTIC
 
 void emu_init();
 void emu_exit();

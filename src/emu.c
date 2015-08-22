@@ -72,7 +72,8 @@ void emu_cycle()
   BOOL advance = TRUE; // advance PC
 
   unsigned short i;
-  unsigned char x, y, xl, yl, line; // 0xDXYN
+  unsigned char l, x, y, lx, ly;
+  BOOL hit;
 
   if (emu_stepthrough)
   {
@@ -98,7 +99,8 @@ void emu_cycle()
         case 0xEE:
           if (n2 == 0) // 0x00EE: Return
           {
-            emu_pc = emu_stack[--emu_stack_top];
+            emu_stack_top--;
+            emu_pc = emu_stack[emu_stack_top];
             advance = FALSE;
           }
           else emu_illegal();
@@ -151,10 +153,9 @@ void emu_cycle()
       break;
 
     case 0x7: // 0x7XNN: %X += $NN
-      if (emu_reg[n2] > (0xFF - b2))
-        emu_reg[0xF] = 1; // carry
-      else
-        emu_reg[0xF] = 0;
+#ifndef EMU_REALISTIC
+      emu_reg[0xF] = (emu_reg[n2] > (0xFF - b2)); // carry
+#endif
       emu_reg[n2] += b2;
 
     case 0x8:
@@ -177,37 +178,38 @@ void emu_cycle()
           break;
 
         case 0x4: // 0x8XY4: %X += %Y
-          if (emu_reg[n2] > (0xFF - emu_reg[n3]))
-            emu_reg[0xF] = 1; // carry
-          else
-            emu_reg[0xF] = 0;
+          emu_reg[0xF] = (emu_reg[n2] > (0xFF - emu_reg[n3])); // carry
           emu_reg[n2] += emu_reg[n3];
           break;
 
         case 0x5: // 0x8XY5: %X -= %Y
-          if (emu_reg[n2] < emu_reg[n3])
-            emu_reg[0xF] = 1; // borrow
-          else
-            emu_reg[0xF] = 0;
+          emu_reg[0xF] = (emu_reg[n2] < emu_reg[n3]); // borrow
           emu_reg[n2] -= emu_reg[n3];
           break;
 
         case 0x6: // 0x8XY6: %X >>= 1
+#ifdef EMU_REALISTIC
+          emu_reg[0xF] = emu_reg[n3] & 0x1;
+          emu_reg[n2] = emu_reg[n3] >> 1;
+#else
           emu_reg[0xF] = emu_reg[n2] & 0x1;
           emu_reg[n2] >>= 1;
+#endif
           break;
 
         case 0x7: // 0x8XY7: %X = %Y - %X
-          if (emu_reg[n3] < emu_reg[n2])
-            emu_reg[0xF] = 1; // borrow
-          else
-            emu_reg[0xF] = 0;
+          emu_reg[0xF] = (emu_reg[n3] < emu_reg[n2]); // borrow
           emu_reg[n2] = emu_reg[n3] - emu_reg[n2];
           break;
 
         case 0xE: // 0x8XYE: %X <<= 1
+#ifdef EMU_REALISTIC
+          emu_reg[0xF] = emu_reg[n3] >> 0x7;
+          emu_reg[n2] = emu_reg[n3] >> 1;
+#else
           emu_reg[0xF] = emu_reg[n2] >> 0x7;
           emu_reg[n2] <<= 1;
+#endif
           break;
 
         default:
@@ -234,30 +236,31 @@ void emu_cycle()
 
     case 0xB: // 0xBNNN: Jump to $NNN + %0
       emu_pc = emu_mem + ((n2 << 8) | b2) + emu_reg[0];
-      break;
+      advance = FALSE; break;
 
     case 0xC: // 0xCXNN: %X = rand() & $NN
       emu_reg[n2] = random(0xFF) & b2;
       break;
 
     case 0xD: // 0xDXYN: Draw sprite from %I at $X,$Y with a height of $N
-      for (yl = 0; yl < n4; yl++)
+      hit = FALSE;
+      for (ly = 0; ly < n4; ly++)
       {
-        line = emu_mem[emu_i + yl];
-        for (xl = 0; xl < 8; xl++)
+        l = emu_mem[emu_i + ly];
+        y = emu_reg[n3] + ly;
+        for (lx = 0; lx < 8; lx++)
         {
-          x = (n2 + xl) % SCREEN_WIDTH;
-          y = (n3 + yl) % SCREEN_HEIGHT;
-      
-          if ((line & (0x80 >> xl)) != 0)
+          x = emu_reg[n2] + lx;
+          if (l & (0x80 >> lx))
           {
             if (SCREEN_GET64(screen_mem, x, y))
-              emu_reg[0xF] = 1;
+              hit = TRUE;
             SCREEN_XOR64(screen_mem, x, y);
           }
         }
-        screen_dirty = TRUE;
       }
+      screen_dirty = TRUE;
+      emu_reg[0xF] = hit;
       break;
 
     case 0xE:
@@ -301,15 +304,14 @@ void emu_cycle()
           emu_delaytimer = emu_reg[n2];
           break;
 
-        case 0x18: // 0xFX15: %sounds = %VX
+        case 0x18: // 0xFX15: %sound = %VX
           emu_soundtimer = emu_reg[n2];
           break;
 
         case 0x1E: // 0xFX1E: %I += %X
-          if (emu_i > (EMU_MEMSIZE - emu_reg[n2]))
-            emu_reg[0xF] = 1;
-          else
-            emu_reg[0xF] = 0;
+#ifdef EMU_REALISTIC
+          emu_reg[0xF] = (emu_i > (EMU_MEMSIZE - emu_reg[n2]));
+#endif
           emu_i = (emu_i + emu_reg[n2]) % EMU_MEMSIZE;
           break;
 
@@ -326,13 +328,17 @@ void emu_cycle()
         case 0x55: // 0xFX55: Store %0 to %X in memory starting at %I
           for (i = 0; i <= n2; i++)
             emu_mem[emu_i + i] = emu_reg[i];
+#ifdef EMU_REALISTIC
           emu_i += n2 + 1;
+#endif
           break;
 
         case 0x65: // 0xFX65: Fill %0 to %X with the memory starting at %I
           for (i = 0; i <= n2; i++)
             emu_reg[i] = emu_mem[emu_i + i];
+#ifdef EMU_REALISTIC
           emu_i += n2 + 1;
+#endif
           break;
 
         default:
@@ -365,8 +371,8 @@ void emu_setpaused(BOOL paused)
 
 DEFINE_INT_HANDLER(emu_int5)
 {
-  if (emu_delaytimer >= 1)
+  if (emu_delaytimer > 0)
     emu_delaytimer -= 1;
-  if (emu_soundtimer >= 1)
+  if (emu_soundtimer > 0)
     emu_soundtimer -= 1;
 }

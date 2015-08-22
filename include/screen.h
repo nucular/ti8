@@ -8,7 +8,7 @@
 #define SCREEN_PITCH 8
 #define SCREEN_MEMSIZE (SCREEN_PITCH * SCREEN_HEIGHT)
 
-#define SCREEN_OFFSET64(x,y) ((y<<2)+(y<<2)+(x>>3))
+#define SCREEN_OFFSET64(x,y) (((y)<<2)+((y)<<2)+((x)>>3))
 #define SCREEN_ADDR64(p,x,y) ((unsigned char*)(p)+SCREEN_OFFSET64(x,y))
 #define SCREEN_MASK64(x) ((unsigned char)(0x80 >> ((x)&7)))
 #define SCREEN_GET64(p,x,y) (!(!(*SCREEN_ADDR64(p,x,y) & SCREEN_MASK64(x))))
@@ -16,7 +16,7 @@
 #define SCREEN_CLR64(p,x,y) (*SCREEN_ADDR64(p,x,y) &= ~SCREEN_MASK64(x))
 #define SCREEN_XOR64(p,x,y) (*SCREEN_ADDR64(p,x,y) ^= SCREEN_MASK64(x))
 
-#define SCREEN_OFFSET240(x,y) ((y<<5)-(y<<1)+(x>>3))
+#define SCREEN_OFFSET240(x,y) (((y)<<5)-((y)<<1)+((x)>>3))
 #define SCREEN_ADDR240(p,x,y) ((unsigned char*)(p)+SCREEN_OFFSET240(x,y))
 #define SCREEN_MASK240(x) ((unsigned char)(0x80 >> ((x)&7)))
 #define SCREEN_GET240(p,x,y) (!(!(*SCREEN_ADDR240(p,x,y) & SCREEN_MASK240(x))))
