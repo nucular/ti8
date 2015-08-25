@@ -2,7 +2,7 @@ TI8
 ===
 
 A CHIP-8 emulator for TI calculators.  
-Project status: barely working
+Project status: works (screen scaling crashes though)
 
 Usage
 -----

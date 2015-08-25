@@ -14,7 +14,7 @@ void input_update()
   input_keys[0x5] = _keytest_optimized(RR_8);
   input_keys[0x6] = _keytest_optimized(RR_9);
   input_keys[0x7] = _keytest_optimized(RR_4);
-  input_keys[0x8] = _keytest_optimized(RR_4);
+  input_keys[0x8] = _keytest_optimized(RR_5);
   input_keys[0x9] = _keytest_optimized(RR_6);
   input_keys[0xA] = _keytest_optimized(RR_1);
   input_keys[0xB] = _keytest_optimized(RR_3);

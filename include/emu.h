@@ -15,6 +15,7 @@ void emu_init();
 void emu_exit();
 void emu_cycle();
 void emu_setpaused(BOOL paused);
+char* emu_findmne();
 DEFINE_INT_HANDLER(emu_int5);
 
 const char emu_font[80] = {

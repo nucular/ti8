@@ -3,10 +3,12 @@
 #include <stdlib.h>
 #include <alloc.h>
 #include <asmtypes.h>
+#include <compat.h>
 #include <graph.h>
 #include <intr.h>
 #include <mem.h>
 #include <stdio.h>
+#include <string.h>
 
 #include "main.h"
 #include "input.h"
@@ -52,8 +54,9 @@ void emu_exit()
 
 void emu_illegal()
 {
+  FontSetSys(F_6x8);
   printf_xy(0, 127 - 8,
-    "!!! [%03X]: 0x%04X",
+    "[%03X]: %04X ???",
     (unsigned int)(emu_pc - emu_mem),
     (unsigned short)(*emu_pc)
   );
@@ -74,16 +77,6 @@ void emu_cycle()
   unsigned short i;
   unsigned char l, x, y, lx, ly;
   BOOL hit;
-
-  if (emu_stepthrough)
-  {
-    printf_xy(0, 127 - 8,
-      "[%03X]: %04X",
-      (unsigned int)(emu_pc - emu_mem),
-      (b1 << 8) | b2
-    );
-    emu_setpaused(TRUE);
-  }
 
   switch (n1)
   {
@@ -111,12 +104,12 @@ void emu_cycle()
       }
       break;
 
-    case 0x1: // 0x1NNN: Jump to %NNN
+    case 0x1: // 0x1NNN: Jump to $NNN
       emu_pc = emu_mem + ((n2 << 8) | b2);
       advance = FALSE; break;
 
-    case 0x2: // 0x2NNN: Call %NNN
-      emu_stack[emu_stack_top++] = emu_pc;
+    case 0x2: // 0x2NNN: Call $NNN
+      emu_stack[emu_stack_top++] = emu_pc + 2;
       emu_pc = emu_mem + ((n2 << 8) | b2);
       advance = FALSE; break;
 
@@ -155,6 +148,7 @@ void emu_cycle()
       emu_reg[0xF] = (emu_reg[n2] > (0xFF - b2)); // carry
 #endif
       emu_reg[n2] += b2;
+      break;
 
     case 0x8:
       switch (n4)
@@ -281,6 +275,7 @@ void emu_cycle()
         default:
           emu_illegal(); break;
       }
+      break;
 
     case 0xF:
       switch (b2)
@@ -345,6 +340,36 @@ void emu_cycle()
           break;
       }
       break;
+
+    default:
+      emu_illegal();
+      break;
+  }
+
+  if (emu_stepthrough)
+  {
+    char buf[255] = "\x00";
+    FontSetSys(F_6x8);
+    printf_xy(0, 127 - 8,
+      "[%03X]: %04X %s",
+      (unsigned int)(emu_pc - emu_mem),
+      (b1 << 8) | b2,
+      emu_findmne(buf)
+    );
+    FontSetSys(F_4x6);
+    for (i = 0; i < EMU_REGCOUNT; i++)
+    {
+      printf_xy(LCD_WIDTH - 20, i * 7 + 1,
+        "V%01X %02X",
+        i,
+        emu_reg[i]
+      );
+    }
+    printf_xy(LCD_WIDTH - 20, i * 7 + 1,
+      "I %03X",
+      emu_i
+    );
+    emu_setpaused(TRUE);
   }
 
   if (advance)
@@ -357,7 +382,8 @@ void emu_setpaused(BOOL paused)
 {
   if (paused)
   {
-    printf_xy(240 - 16, 127 - 8, "||");
+    FontSetSys(F_4x6);
+    printf_xy(LCD_WIDTH - 9, LCD_HEIGHT - 7, "||");
     emu_paused = TRUE;
   }
   else
@@ -366,6 +392,138 @@ void emu_setpaused(BOOL paused)
     screen_update();
     emu_paused = FALSE;
   }
+}
+
+char* emu_findmne(char* buf)
+{
+  unsigned char b1 = *emu_pc;
+  unsigned char b2 = *(emu_pc + 1);
+  unsigned char n1 = b1 >> 4;
+  unsigned char n2 = b1 & 0xF;
+  unsigned char n3 = b2 >> 4;
+  unsigned char n4 = b2 & 0xF;
+
+  switch (n1)
+  {
+    case 0x0:
+      switch (b2)
+      {
+        case 0xE0:
+          if (n2 == 0x0) // 0x00E0: Clear screen
+            strcpy(buf, "cls");
+          else strcpy(buf, "???");
+          break;
+        case 0xEE:
+          if (n2 == 0) // 0x00EE: Return
+            strcpy(buf, "rts");
+          else strcpy(buf, "???");
+          break;
+        default:
+          strcpy(buf, "???"); break;
+      }
+      break;
+    case 0x1: // 0x1NNN: Jump to $NNN
+      sprintf(buf, "jmp %03X", (n2 << 8) | b2); break;
+    case 0x2: // 0x2NNN: Call $NNN
+      sprintf(buf, "jsr %03X", (n2 << 8) | b2); break;
+    case 0x3: // 0x3XNN: Skip if %X == $NN
+      sprintf(buf, "skeq V%01X %02X", n2, b2); break;
+    case 0x4: // 0x4XNN: Skip if %X != $NN
+      sprintf(buf, "skne V%01X %02X", n2, b2); break;
+    case 0x5:
+      if (n4 == 0) // 0x5XY0: Skip if %X == %Y
+      {
+        sprintf(buf, "skeq V%01X V%01X", n2, n3); break;
+      }
+      else strcpy(buf, "???");
+      break;
+    case 0x6: // 0x6XNN: %X = $NN
+      sprintf(buf, "mov V%01X %02X", n2, b2); break;
+    case 0x7: // 0x7XNN: %X += $NN
+      sprintf(buf, "add V%01X %02X", n2, b2); break;
+    case 0x8:
+      switch (n4)
+      {
+        case 0x0: // 0x8XY0: %X = %Y
+          sprintf(buf, "mov V%01X V%01X", n2, n3); break;
+        case 0x1: // 0x8XY1: %X |= %Y
+          sprintf(buf, "or V%01X V%01X", n2, n3); break;
+        case 0x2: // 0x8XY2: %X &= %Y
+          sprintf(buf, "and V%01X V%01X", n2, n3); break;
+        case 0x3: // 0x8XY3: %X ^= %Y
+          sprintf(buf, "xor V%01X V%01X", n2, n3); break;
+        case 0x4: // 0x8XY4: %X += %Y
+          sprintf(buf, "add V%01X V%01X", n2, n3); break;
+        case 0x5: // 0x8XY5: %X -= %Y
+          sprintf(buf, "sub V%01X V%01X", n2, n3); break;
+        case 0x6: // 0x8XY6: %X >>= 1
+#ifdef EMU_REALISTIC
+          sprintf(buf, "shr V%01X V%01X", n3, n2); break;
+#else
+          sprintf(buf, "shr V%01X", n2); break;
+#endif
+        case 0x7: // 0x8XY7: %X = %Y - %X
+          sprintf(buf, "rsb V%01X V%01X", n2, n3); break;
+        case 0xE: // 0x8XYE: %X <<= 1
+#ifdef EMU_REALISTIC
+          sprintf(buf, "shl V%01X V%01X", n3, n2); break;
+#else
+          sprintf(buf, "shl V%01X", n2); break;
+#endif
+        default:
+          strcpy(buf, "???"); break;
+      }
+      break;
+    case 0x9:
+      sprintf(buf, "skne V%01X V%01X", n2, n3); break;
+    case 0xA: // 0xANNN: %I = $NNN
+      sprintf(buf, "mvi %03X", (n2 << 8) | b2); break;
+    case 0xB: // 0xBNNN: Jump to $NNN + %0
+      sprintf(buf, "jmi %03X V0", (n2 << 8) | b2); break;
+    case 0xC: // 0xCXNN: %X = rand() & $NN
+      sprintf(buf, "rand V%01X %02X", n2, b2); break;
+    case 0xD: // 0xDXYN: Draw sprite from %I at $X,$Y with a height of $N
+      sprintf(buf, "sprite V%01X V%01X %01X", n2, n3, n4); break;
+    case 0xE:
+      switch (b2)
+      {
+        case 0x9E: // 0xEX9E: Skip if key in %VX is pressed
+          sprintf(buf, "skpr V%01X", n2); break;
+        case 0xA1: // 0xEXA1: Skip if key in %VX is not pressed
+          sprintf(buf, "skup V%01X", n2); break;
+        default:
+          strcpy(buf, "???"); break;
+      }
+    case 0xF:
+      switch (b2)
+      {
+        case 0x07: // 0xFX07: %VX = %delay
+          sprintf(buf, "gdel V%01X", n2); break;
+        case 0x0A: // 0xFX0A: Wait for key, set %VX to it
+          sprintf(buf, "key V%01X", n2); break;
+        case 0x15: // 0xFX15: %delay = %VX
+          sprintf(buf, "sdel V%01X", n2); break;
+        case 0x18: // 0xFX15: %sound = %VX
+          sprintf(buf, "ssnd V%01X", n2); break;
+        case 0x1E: // 0xFX1E: %I += %X
+          sprintf(buf, "adi V%01X", n2); break;
+        case 0x29: // 0xFX29: %I = address of char for %X
+          sprintf(buf, "font V%01X", n2); break;
+        case 0x33: // 0xFX33: Store binary of %X in %I to %I+2
+          sprintf(buf, "bcd V%01X", n2); break;
+        case 0x55: // 0xFX55: Store %0 to %X in memory starting at %I
+          sprintf(buf, "str V0 V%01X", n2); break;
+        case 0x65: // 0xFX65: Fill %0 to %X with the memory starting at %I
+          sprintf(buf, "ldr V0 V%01X", n2); break;
+        default:
+          strcpy(buf, "???"); break;
+      }
+      break;
+    default:
+      strcpy(buf, "???"); break;
+  }
+
+  return buf;
 }
 
 DEFINE_INT_HANDLER(emu_int5)

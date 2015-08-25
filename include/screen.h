@@ -31,5 +31,6 @@ void screen_update();
 
 BOOL screen_dirty;
 unsigned char *screen_mem;
+unsigned short *screen_lookup;
 
 #endif
