@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <args.h>
 #include <asmtypes.h>
+#include <compat.h>
 #include <dialogs.h>
 #include <estack.h>
 #include <files.h>
@@ -89,7 +90,7 @@ void _main(void)
           emu_running = FALSE;
           break;
 
-        case KEY_ENTER:
+        case KEY_APPS:
           emu_setpaused(!emu_paused);
           break;
 
@@ -103,8 +104,65 @@ void _main(void)
           {
             emu_stepthrough = TRUE;
             emu_setpaused(TRUE);
+            emu_printdebug();
           }
           break;
+
+        case KEY_F1: emu_regsel = 0x1; emu_printdebug(); break;
+        case KEY_F2: emu_regsel = 0x2; emu_printdebug(); break;
+        case KEY_F3: emu_regsel = 0x3; emu_printdebug(); break;
+        case KEY_F4: emu_regsel = 0x4; emu_printdebug(); break;
+        case KEY_F5: emu_regsel = 0x5; emu_printdebug(); break;
+        case KEY_F6: emu_regsel = 0x6; emu_printdebug(); break;
+        case KEY_F7: emu_regsel = 0x7; emu_printdebug(); break;
+        case KEY_F8: emu_regsel = 0x8; emu_printdebug(); break;
+
+        case KEY_CLEAR:
+          if (emu_stepthrough)
+          {
+            if (emu_regsel < EMU_REGCOUNT)
+              emu_reg[emu_regsel] = 0;
+            else if (emu_regsel == EMU_REGCOUNT)
+              emu_i = 0;
+            else
+              emu_pc = emu_mem + EMU_PROGSTART;
+            emu_printdebug();
+          }
+          break;
+      }
+
+      // Pseudoconstants...
+      if (key == KEY_UP && emu_stepthrough)
+      {
+        if (emu_regsel == 0) emu_regsel = EMU_REGCOUNT + 1;
+        else emu_regsel--;
+        emu_printdebug();
+      }
+      else if (key == KEY_DOWN && emu_stepthrough)
+      {
+        if (emu_regsel == EMU_REGCOUNT + 1) emu_regsel = 0;
+        else emu_regsel++;
+        emu_printdebug();
+      }
+      else if (key == KEY_LEFT && emu_stepthrough)
+      {
+        if (emu_regsel < EMU_REGCOUNT)
+          emu_reg[emu_regsel]--;
+        else if (emu_regsel == EMU_REGCOUNT)
+          emu_i--;
+        else
+          emu_pc -= 2;
+        emu_printdebug();
+      }
+      else if (key == KEY_RIGHT && emu_stepthrough)
+      {
+        if (emu_regsel < EMU_REGCOUNT)
+          emu_reg[emu_regsel]++;
+        else if (emu_regsel == EMU_REGCOUNT)
+          emu_i++;
+        else
+          emu_pc += 2;
+        emu_printdebug();
       }
     }
 

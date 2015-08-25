@@ -1,6 +1,8 @@
 #ifndef EMU_H
 #define EMU_H
 
+#include "conf.h"
+
 #include <asmtypes.h>
 #include <intr.h>
 
@@ -9,12 +11,12 @@
 #define EMU_PROGSIZE (EMU_MEMSIZE - EMU_PROGSTART)
 #define EMU_STACKSIZE 16
 #define EMU_REGCOUNT 16
-#define EMU_REALISTIC
 
 void emu_init();
 void emu_exit();
 void emu_cycle();
 void emu_setpaused(BOOL paused);
+void emu_printdebug();
 char* emu_findmne();
 DEFINE_INT_HANDLER(emu_int5);
 
@@ -42,6 +44,7 @@ BOOL emu_paused;
 BOOL emu_stepthrough;
 unsigned char *emu_mem;
 unsigned char emu_reg[EMU_REGCOUNT];
+unsigned char emu_regsel;
 unsigned char *emu_pc;
 unsigned short emu_i;
 unsigned char *emu_stack[EMU_STACKSIZE];

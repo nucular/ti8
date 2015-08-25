@@ -15,6 +15,9 @@ void screen_init()
   screen_mem = malloc(SCREEN_MEMSIZE);
   if (!screen_mem)
     fatal("Could not initialize screen", "Out of memory");
+
+#ifdef SCREEN_SCALE2X
+  // Lookup table for "fast" byte -> word scaling
   screen_lookup = malloc(0x101);
   if (!screen_lookup)
     fatal("Could not initialize screen", "Out of memory");
@@ -38,6 +41,8 @@ void screen_init()
       | ((i >> 7) & 1) << 14
       | ((i >> 7) & 1) << 15;
   }
+#endif
+
   screen_clear();
 }
 
@@ -49,15 +54,21 @@ void screen_clear()
 
 void screen_update()
 {
+  // My horrible screen copying function
   unsigned short x, y;
   for (y = 0; y < SCREEN_HEIGHT; y++)
   {
     for (x = 0; x < SCREEN_PITCH; x++)
     {
       unsigned char a = *SCREEN_ADDR64(screen_mem, x<<3, y);
+#ifdef SCREEN_SCALE2X
+      // This is hillariously broken
       unsigned short b = screen_lookup[a];
-      *SCREEN_ADDR240(LCD_MEM, x<<4, y<<1) = b;
-      *SCREEN_ADDR240(LCD_MEM, x<<4, (y<<1)+1) = b;
+      *SCREEN_ADDR240(LCD_MEM, (x<<4)+SCREEN_OFFX, (y<<1)+SCREEN_OFFX) = b;
+      *SCREEN_ADDR240(LCD_MEM, (x<<4)+SCREEN_OFFY, (y<<1)+1+SCREEN_OFFY) = b;
+#else
+      *SCREEN_ADDR240(LCD_MEM, (x<<3)+SCREEN_OFFX, y+SCREEN_OFFY) = a;
+#endif
     }
   }
 }
@@ -65,5 +76,7 @@ void screen_update()
 void screen_exit()
 {
   if (screen_mem) free(screen_mem);
+#ifdef SCREEN_SCALE2X
   if (screen_lookup) free(screen_lookup);
+#endif
 }

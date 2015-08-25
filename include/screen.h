@@ -1,12 +1,23 @@
 #ifndef SCREEN_H
 #define SCREEN_H
 
+#include "conf.h"
+
 #include <asmtypes.h>
+#include <compat.h>
 
 #define SCREEN_WIDTH 64
 #define SCREEN_HEIGHT 32
 #define SCREEN_PITCH 8
 #define SCREEN_MEMSIZE (SCREEN_PITCH * SCREEN_HEIGHT)
+
+#ifdef SCREEN_SCALE2X
+#define SCREEN_OFFX ((LCD_WIDTH/2)-SCREEN_WIDTH)
+#define SCREEN_OFFY ((LCD_HEIGHT/2)-SCREEN_HEIGHT)
+#else
+#define SCREEN_OFFX ((LCD_WIDTH/2)-(SCREEN_WIDTH/2))
+#define SCREEN_OFFY ((LCD_HEIGHT/2)-(SCREEN_HEIGHT/2))
+#endif
 
 #define SCREEN_OFFSET64(x,y) (((y)<<2)+((y)<<2)+((x)>>3))
 #define SCREEN_ADDR64(p,x,y) ((unsigned char*)(p)+SCREEN_OFFSET64(x,y))
@@ -31,6 +42,8 @@ void screen_update();
 
 BOOL screen_dirty;
 unsigned char *screen_mem;
+#ifdef SCREEN_SCALE2X
 unsigned short *screen_lookup;
+#endif
 
 #endif

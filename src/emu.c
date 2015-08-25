@@ -38,6 +38,7 @@ void emu_init()
   for (i = 0; i < EMU_REGCOUNT; i++) emu_reg[i] = 0;
   for (i = 0; i < EMU_STACKSIZE; i++) emu_stack[i] = 0;
   emu_stack_top = 0;
+  emu_regsel = 0;
 
   randomize();
   emu_paused = FALSE;
@@ -56,9 +57,9 @@ void emu_illegal()
 {
   FontSetSys(F_6x8);
   printf_xy(0, 127 - 8,
-    "[%03X]: %04X ???",
-    (unsigned int)(emu_pc - emu_mem),
-    (unsigned short)(*emu_pc)
+    "[%03X] %04X: ???          ",
+    (unsigned short)(emu_pc - emu_mem),
+    (*emu_pc << 8) | (*(emu_pc + 1))
   );
   emu_setpaused(TRUE);
 }
@@ -72,7 +73,7 @@ void emu_cycle()
   unsigned char n3 = b2 >> 4;
   unsigned char n4 = b2 & 0xF;
 
-  BOOL advance = TRUE; // advance PC
+  BOOL advance = TRUE; // advance PC?
 
   unsigned short i;
   unsigned char l, x, y, lx, ly;
@@ -234,7 +235,7 @@ void emu_cycle()
       emu_reg[n2] = random(0xFF) & b2;
       break;
 
-    case 0xD: // 0xDXYN: Draw sprite from %I at $X,$Y with a height of $N
+    case 0xD: // 0xDXYN: Draw sprite from %I at %X,%Y with a height of $N
       hit = FALSE;
       for (ly = 0; ly < n4; ly++)
       {
@@ -346,36 +347,16 @@ void emu_cycle()
       break;
   }
 
-  if (emu_stepthrough)
-  {
-    char buf[255] = "\x00";
-    FontSetSys(F_6x8);
-    printf_xy(0, 127 - 8,
-      "[%03X]: %04X %s",
-      (unsigned int)(emu_pc - emu_mem),
-      (b1 << 8) | b2,
-      emu_findmne(buf)
-    );
-    FontSetSys(F_4x6);
-    for (i = 0; i < EMU_REGCOUNT; i++)
-    {
-      printf_xy(LCD_WIDTH - 20, i * 7 + 1,
-        "V%01X %02X",
-        i,
-        emu_reg[i]
-      );
-    }
-    printf_xy(LCD_WIDTH - 20, i * 7 + 1,
-      "I %03X",
-      emu_i
-    );
-    emu_setpaused(TRUE);
-  }
-
   if (advance)
     emu_pc += 2;
   if (emu_pc >= (emu_mem + EMU_MEMSIZE))
     emu_running = FALSE;
+
+  if (emu_stepthrough)
+  {
+    emu_printdebug();
+    emu_setpaused(TRUE);
+  }
 }
 
 void emu_setpaused(BOOL paused)
@@ -394,15 +375,48 @@ void emu_setpaused(BOOL paused)
   }
 }
 
-char* emu_findmne(char* buf)
+void emu_printdebug()
 {
-  unsigned char b1 = *emu_pc;
-  unsigned char b2 = *(emu_pc + 1);
+  // Program counter and next instruction with mnemonic
+  char buf[255] = "\x00";
+  FontSetSys(F_6x8);
+  printf_xy(12, 127 - 17, emu_regsel == EMU_REGCOUNT + 1 ? "v" : "  ");
+  printf_xy(0, 127 - 8,
+    "[%03X] %04X: %s          ",
+    (unsigned short)(emu_pc - emu_mem),
+    (*emu_pc << 8) | (*(emu_pc + 1)),
+    emu_findmne(emu_pc, buf)
+  );
+
+  // List all registers including I
+  FontSetSys(F_4x6);
+  unsigned char i;
+  for (i = 0; i < EMU_REGCOUNT; i++)
+  {
+    printf_xy(LCD_WIDTH - 24, i * 7 + 1, i == emu_regsel ? ">" : "  ");
+    printf_xy(LCD_WIDTH - 20, i * 7 + 1,
+      "V%01X %02X",
+      i,
+      emu_reg[i]
+    );
+  }
+  printf_xy(LCD_WIDTH - 24, i * 7 + 1, i == emu_regsel ? ">" : "  ");
+  printf_xy(LCD_WIDTH - 20, i * 7 + 1,
+    "I %03X",
+    emu_i
+  );
+}
+
+char* emu_findmne(unsigned char* ptr, char* buf)
+{
+  unsigned char b1 = *ptr;
+  unsigned char b2 = *(ptr + 1);
   unsigned char n1 = b1 >> 4;
   unsigned char n2 = b1 & 0xF;
   unsigned char n3 = b2 >> 4;
   unsigned char n4 = b2 & 0xF;
 
+  // Parse the bytes again to find the mnemonic
   switch (n1)
   {
     case 0x0:

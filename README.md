@@ -1,8 +1,10 @@
+![A fancy screenshot](https://github.com/nucular/ti8/raw/master/screenshot.png)
+
 TI8
 ===
 
 A CHIP-8 emulator for TI calculators.  
-Project status: works (screen scaling crashes though)
+Project status: works
 
 Usage
 -----
@@ -13,6 +15,22 @@ Usage
 3. Put them on your calculator too.
 4. Run `ti8("folder\myprog")` to launch the program.
 
+Keys
+----
+
+![Another fancy screenshot](https://github.com/nucular/ti8/raw/master/keys.png)
+
+- Numbers/x/-/+/Enter: Key 0-F, see picture
+  - The COSMAC VIP had an awkward keyboard layout
+- Escape: Exit emulator
+- Apps: Pause/resume execution
+- Mode: Enter/leave stepthrough mode
+  - Apps: Execute next instruction
+  - Up/Down: Select register, I or program counter
+  - Left/Right: Increment/decrement selected register by 1
+  - Clear: Clear selected register
+  - F1-F8: Jump to register number
+
 Building
 --------
 
@@ -22,3 +40,12 @@ Building
 Building tipack is trivial, the Makefile will default to GCC but you can really
 just run it through your favourite C compiler like you'd do with any single-file
 project.
+
+TODO
+----
+
+- Make the keyboard demo not crash because of invalid reallocation (I have no
+    fucking clue why this happens)
+- Fix the various other unknown issues
+- Fix 2x scaling
+- Add Super-Chip support
