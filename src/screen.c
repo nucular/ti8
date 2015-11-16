@@ -24,7 +24,8 @@ void screen_init()
   unsigned short i;
   for (i = 0; i < 0x100; i++)
   {
-    screen_lookup[i] = ((i >> 0) & 1) << 0
+    screen_lookup[i] =
+        ((i >> 0) & 1) << 0
       | ((i >> 0) & 1) << 1
       | ((i >> 1) & 1) << 2
       | ((i >> 1) & 1) << 3
@@ -62,10 +63,9 @@ void screen_update()
     {
       unsigned char a = *SCREEN_ADDR64(screen_mem, x<<3, y);
 #ifdef SCREEN_SCALE2X
-      // This is hillariously broken
       unsigned short b = screen_lookup[a];
-      *SCREEN_ADDR240(LCD_MEM, (x<<4)+SCREEN_OFFX, (y<<1)+SCREEN_OFFX) = b;
-      *SCREEN_ADDR240(LCD_MEM, (x<<4)+SCREEN_OFFY, (y<<1)+1+SCREEN_OFFY) = b;
+      *(unsigned short*)SCREEN_ADDR240(LCD_MEM, (x<<4)+SCREEN_OFFX, (y<<1)+SCREEN_OFFY) = b;
+      *(unsigned short*)SCREEN_ADDR240(LCD_MEM, (x<<4)+SCREEN_OFFX, (y<<1)+1+SCREEN_OFFY) = b;
 #else
       *SCREEN_ADDR240(LCD_MEM, (x<<3)+SCREEN_OFFX, y+SCREEN_OFFY) = a;
 #endif

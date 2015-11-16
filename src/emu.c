@@ -91,7 +91,7 @@ void emu_cycle()
           break;
 
         case 0xEE:
-          if (n2 == 0) // 0x00EE: Return
+          if (n2 == 0x0 && emu_stack_top > 0) // 0x00EE: Return
           {
             emu_pc = emu_stack[--emu_stack_top];
             advance = FALSE;

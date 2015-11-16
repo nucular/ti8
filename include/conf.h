@@ -4,7 +4,14 @@
 // Try to emulate the original CHIP8, not other emulators
 #define EMU_REALISTIC
 // Scale the emulator screen (currently broken)
-//#define SCREEN_SCALE2X
+#define SCREEN_SCALE2X
+// Center the emulator screen
+//#define SCREEN_CENTER
+
+// Currently broken
+#ifdef SCREEN_SCALE2X
+#undef SCREEN_CENTER
+#endif
 
 // Program Comments
 #define COMMENT_STRING "A CHIP-8 emulator for TI calculators"
