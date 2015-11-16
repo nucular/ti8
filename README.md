@@ -1,7 +1,7 @@
 ![A fancy screenshot](https://github.com/nucular/ti8/raw/master/screenshot.png)
 
-TI8
-===
+ti8()
+=====
 
 A CHIP-8 emulator for TI calculators.  
 Project status: works
@@ -44,7 +44,6 @@ project.
 TODO
 ----
 
-- Make the keyboard demo not crash because of invalid reallocation (I have no
-    fucking clue why this happens)
+- Find out why keyboard stuff segfaults when EMU_REALISTIC is defined
 - Fix the various other unknown issues
 - Add Super-Chip support

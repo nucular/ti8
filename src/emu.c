@@ -76,7 +76,7 @@ void emu_cycle()
   BOOL advance = TRUE; // advance PC?
 
   unsigned short i;
-  unsigned char l, x, y, lx, ly;
+  unsigned char l, x, y, lx, ly, k;
   BOOL hit;
 
   switch (n1)
@@ -260,14 +260,16 @@ void emu_cycle()
       switch (b2)
       {
         case 0x9E: // 0xEX9E: Skip if key in %VX is pressed
-          if (input_keys[emu_reg[b2]])
+          k = emu_reg[b2];
+          if (k <= 0xF && input_keys[k])
             emu_pc += 4;
           else
             emu_pc += 2;
           advance = FALSE; break;
 
         case 0xA1: // 0xEXA1: Skip if key in %VX is not pressed
-          if (input_keys[emu_reg[b2]])
+          k = emu_reg[b2];
+          if (k <= 0xF && input_keys[k])
             emu_pc += 2;
           else
             emu_pc += 4;
@@ -287,7 +289,7 @@ void emu_cycle()
 
         case 0x0A: // 0xFX0A: Wait for key, set %VX to it
           advance = FALSE;
-          for (i = 0; i < 0xF; i++) {
+          for (i = 0; i <= 0xF; i++) {
             if (input_keys[i]) {
               emu_reg[n2] = i;
               advance = TRUE;

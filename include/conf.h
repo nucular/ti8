@@ -1,12 +1,14 @@
 #ifndef CONF_H
 #define CONF_H
 
-// Try to emulate the original CHIP8, not other emulators
-#define EMU_REALISTIC
+// Try to emulate the original CHIP8, not other emulators (broken)
+//#define EMU_REALISTIC
 // Scale the emulator screen
 #define SCREEN_SCALE2X
 // Center the emulator screen
 #define SCREEN_CENTER
+// Use the optimized keytest routine
+#define INPUT_OPTIMIZED
 
 // Program Comments
 #define COMMENT_STRING "A CHIP-8 emulator for TI calculators"
