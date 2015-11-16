@@ -56,18 +56,18 @@ void screen_clear()
 void screen_update()
 {
   // My horrible screen copying function
-  unsigned short x, y;
+  unsigned short sx, y;
   for (y = 0; y < SCREEN_HEIGHT; y++)
   {
-    for (x = 0; x < SCREEN_PITCH; x++)
+    for (sx = 0; sx < SCREEN_PITCH; sx++)
     {
-      unsigned char a = *SCREEN_ADDR64(screen_mem, x<<3, y);
+      unsigned char a = *SCREEN_ADDR64(screen_mem, sx<<3, y);
 #ifdef SCREEN_SCALE2X
       unsigned short b = screen_lookup[a];
-      *(unsigned short*)SCREEN_ADDR240(LCD_MEM, (x<<4)+SCREEN_OFFX, (y<<1)+SCREEN_OFFY) = b;
-      *(unsigned short*)SCREEN_ADDR240(LCD_MEM, (x<<4)+SCREEN_OFFX, (y<<1)+1+SCREEN_OFFY) = b;
+      *(unsigned short*)SCREEN_ADDR240(LCD_MEM, (sx<<4)+SCREEN_OFFX, (y<<1)+SCREEN_OFFY) = b;
+      *(unsigned short*)SCREEN_ADDR240(LCD_MEM, (sx<<4)+SCREEN_OFFX, (y<<1)+1+SCREEN_OFFY) = b;
 #else
-      *SCREEN_ADDR240(LCD_MEM, (x<<3)+SCREEN_OFFX, y+SCREEN_OFFY) = a;
+      *SCREEN_ADDR240(LCD_MEM, (sx<<3)+SCREEN_OFFX, y+SCREEN_OFFY) = a;
 #endif
     }
   }
