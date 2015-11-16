@@ -47,5 +47,4 @@ TODO
 - Make the keyboard demo not crash because of invalid reallocation (I have no
     fucking clue why this happens)
 - Fix the various other unknown issues
-- Fix 2x scaling
 - Add Super-Chip support

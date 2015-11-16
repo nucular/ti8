@@ -64,7 +64,7 @@ void screen_update()
       unsigned char a = *SCREEN_ADDR64(screen_mem, sx<<3, y);
 #ifdef SCREEN_SCALE2X
       unsigned short b = screen_lookup[a];
-      unsigned short bx = ((sx<<4)+(SCREEN_OFFX))&(~1);
+      unsigned short bx = (sx+(SCREEN_OFFX>>4))<<4;
       unsigned short by = (y<<1)+SCREEN_OFFY;
       *(unsigned short*)SCREEN_ADDR240(LCD_MEM, bx, by) = b;
       *(unsigned short*)SCREEN_ADDR240(LCD_MEM, bx, by+1) = b;

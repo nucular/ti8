@@ -8,10 +8,6 @@
 // Center the emulator screen
 #define SCREEN_CENTER
 
-//#ifdef SCREEN_SCALE2X
-//#undef SCREEN_CENTER
-//#endif
-
 // Program Comments
 #define COMMENT_STRING "A CHIP-8 emulator for TI calculators"
 #define COMMENT_PROGRAM_NAME "ti8"
