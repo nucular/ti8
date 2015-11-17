@@ -6,11 +6,11 @@
 #include <asmtypes.h>
 #include <intr.h>
 
-#define EMU_MEMSIZE 0xFFF
+#define EMU_MEMSIZE (0xFFF + 3)
 #define EMU_PROGSTART 0x200
 #define EMU_PROGSIZE (EMU_MEMSIZE - EMU_PROGSTART)
-#define EMU_STACKSIZE 16
-#define EMU_REGCOUNT 16
+#define EMU_STACKSIZE 0x10
+#define EMU_REGCOUNT 0x10
 
 void emu_init();
 void emu_exit();

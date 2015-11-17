@@ -34,9 +34,9 @@ void emu_init()
   emu_soundtimer = 0;
 
   // Clear registers and stack
-  unsigned short i;
-  for (i = 0; i < EMU_REGCOUNT; i++) emu_reg[i] = 0;
-  for (i = 0; i < EMU_STACKSIZE; i++) emu_stack[i] = 0;
+  memset(emu_reg, 0, EMU_REGCOUNT);
+  memset(emu_stack, 0, EMU_STACKSIZE);
+
   emu_stack_top = 0;
   emu_regsel = 0;
 
@@ -93,7 +93,7 @@ void emu_cycle()
         case 0xEE:
           if (n2 == 0x0 && emu_stack_top > 0) // 0x00EE: Return
           {
-            emu_pc = emu_stack[--emu_stack_top];
+            emu_pc = emu_stack[emu_stack_top--];
             advance = FALSE;
           }
           else emu_illegal();
@@ -110,7 +110,7 @@ void emu_cycle()
       advance = FALSE; break;
 
     case 0x2: // 0x2NNN: Call $NNN
-      emu_stack[emu_stack_top++] = emu_pc + 2;
+      emu_stack[++emu_stack_top] = emu_pc + 2;
       emu_pc = emu_mem + ((n2 << 8) | b2);
       advance = FALSE; break;
 
@@ -197,10 +197,10 @@ void emu_cycle()
 
         case 0xE: // 0x8XYE: %X <<= 1
 #ifdef EMU_REALISTIC
-          emu_reg[0xF] = emu_reg[n3] >> 0x7;
+          emu_reg[0xF] = emu_reg[n3] >> 7;
           emu_reg[n2] = emu_reg[n3] >> 1;
 #else
-          emu_reg[0xF] = emu_reg[n2] >> 0x7;
+          emu_reg[0xF] = emu_reg[n2] >> 7;
           emu_reg[n2] <<= 1;
 #endif
           break;
@@ -326,7 +326,7 @@ void emu_cycle()
           for (i = 0; i <= n2; i++)
             emu_mem[emu_i + i] = emu_reg[i];
 #ifdef EMU_REALISTIC
-          emu_i += n2 + 1;
+          emu_i = (emu_i + n2 + 1) % EMU_MEMSIZE;
 #endif
           break;
 
@@ -334,7 +334,7 @@ void emu_cycle()
           for (i = 0; i <= n2; i++)
             emu_reg[i] = emu_mem[emu_i + i];
 #ifdef EMU_REALISTIC
-          emu_i += n2 + 1;
+          emu_i = (emu_i + n2 + 1) % EMU_MEMSIZE;
 #endif
           break;
 

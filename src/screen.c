@@ -66,9 +66,15 @@ void screen_update()
       unsigned short b = screen_lookup[a];
       unsigned short bx = (sx+(SCREEN_OFFX>>4))<<4;
       unsigned short by = (y<<1)+SCREEN_OFFY;
+      #ifdef SCREEN_INVERT
+        b = ~b;
+      #endif
       *(unsigned short*)SCREEN_ADDR240(LCD_MEM, bx, by) = b;
       *(unsigned short*)SCREEN_ADDR240(LCD_MEM, bx, by+1) = b;
 #else
+      #ifdef SCREEN_INVERT
+        a = ~a;
+      #endif
       *SCREEN_ADDR240(LCD_MEM, (sx<<3)+SCREEN_OFFX, y+SCREEN_OFFY) = a;
 #endif
     }

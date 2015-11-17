@@ -7,6 +7,8 @@
 #define SCREEN_SCALE2X
 // Center the emulator screen
 #define SCREEN_CENTER
+// Invert the screen colors
+//#define SCREEN_INVERT
 // Use the optimized keytest routine
 #define INPUT_OPTIMIZED
 
