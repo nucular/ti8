@@ -15,6 +15,9 @@ Usage
 3. Put them on your calculator too.
 4. Run `ti8("folder\myprog")` to launch the program.
 
+You can find some configuration defines inside include/conf.h, though you'll
+obviously have to rebuild the program.
+
 Keys
 ----
 

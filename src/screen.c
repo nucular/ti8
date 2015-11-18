@@ -55,7 +55,6 @@ void screen_clear()
 
 void screen_update()
 {
-  // My horrible screen copying function
   unsigned short sx, y;
   for (y = 0; y < SCREEN_HEIGHT; y++)
   {
